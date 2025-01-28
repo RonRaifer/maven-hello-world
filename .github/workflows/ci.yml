@@ -1,0 +1,91 @@
+name: Kepler Maven Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  BuildAndPack:
+    runs-on: ubuntu-latest
+  
+    steps:
+    - name: Code checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Get version from pom and Update
+      id: current_version
+      run: |
+        cd myapp
+        current_version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        new_version=$(echo "$current_version" | awk -F. '{print $1 "." $2 "." ($3 + 1)}')
+        echo "New version: $new_version"
+        mvn versions:set -DnewVersion=$new_version
+        # Delete POM backups. We can also add to the above: -DgenerateBackupPoms=false
+        mvn versions:commit
+        echo "new_version=$new_version" >> $GITHUB_ENV
+      
+#    - name: Get version from pom - OLD APPROACH
+#      id: version
+#      run: |
+#        pom_ver=$(grep -oPm1 "(?<=<version>)[^<]+" ./myapp/pom.xml)
+#        echo "Current version: $pom_ver"
+#        echo "version=$pom_ver" >> $GITHUB_ENV
+#    - name: Update version
+#      id: updated_version
+#      run: |
+#        pom_ver=${{ env.version }}
+#        first_two_numbers=$(echo "$pom_ver" | sed -E 's/\.[0-9]+$//')
+#        last_number=$(echo "$pom_ver" | grep -oE '[0-9]+$') 
+#        increased_last_number=$((last_number + 1))
+#        updated_version="$first_two_numbers.$increased_last_number"
+#        echo "Current version: $pom_ver"
+#        echo "Updated version: $updated_version"
+#        echo "updated_version=$updated_version" >> $GITHUB_ENV
+#        sed -i "/<artifactId>myapp<\/artifactId>/!b;n;c\\  <version>${{ env.updated_version }}</version>" ./myapp/pom.xml
+        
+#    - name: Push updated version
+#      run: |
+#        git config --global user.email "version_update@ron.com"
+#        git config --global user.name "Version Update"
+#        git add ./myapp/pom.xml
+#        git commit -m "Build ${{ env.updated_version }}"
+#        git push
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build
+      run: mvn -B package --file ./myapp/pom.xml
+
+    - name: Create Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: myapp-build-artifact
+        path: myapp/target/*.jar
+
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: myapp-build-artifact
+        path: ./downloaded_artifact
+
+    - name: Build docker
+      run: |
+        echo "New version is: ${{ env.new_version }}"
+        docker build \
+          --build-arg JAR_FILE=downloaded_artifact/*.jar \
+          -t ronraifer/reporon:${{ env.new_version }} .
+
+    - name: Push docker
+      run: |
+        echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_MAIL }}" --password-stdin
+        docker push ronraifer/reporon:${{ env.new_version }}
+
+    - name: Run docker
+      run: |
+        docker run -d -p 8080:8080 ronraifer/reporon:${{ env.new_version }}

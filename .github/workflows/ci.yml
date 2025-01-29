@@ -87,4 +87,16 @@ jobs:
 
     - name: Run docker
       run: |
-        docker run -d -p 8080:8080 ronraifer/reporon:${{ env.new_version }}
+        echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_MAIL }}" --password-stdin
+        docker push ronraifer/reporon:${{ env.new_version }}
+        
+    - name: Change version on POM
+      run: |
+        git config --global user.email "version_update@ron.com"
+        git config --global user.name "Version Update"
+        git add ./myapp/pom.xml
+        git commit -m "Build ${{ env.new_version }}"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

@@ -1,14 +1,14 @@
 # ------------ [STAGE 1] BUILD ------------ #
-FROM eclipse-temurin:17-jdk AS build
+FROM eclipse-temurin:17-jdk AS argset
 
 # Set the build argument for the JAR file
 ARG JAR_FILE=myapp/target/*.jar
 
-# Copy the application JAR from STAGE 1 into the image
-COPY --from=build ${JAR_FILE} app.jar
-
 # ------------ [STAGE 2] RUN ------------ #
 FROM eclipse-temurin:17-jre
+
+# Copy the application JAR from STAGE 1 into the image
+COPY --from=argset ${JAR_FILE} app.jar
 
 # Set permissions and switch to non-root user
 USER 1000

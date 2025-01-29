@@ -87,8 +87,7 @@ jobs:
 
     - name: Run docker
       run: |
-        echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_MAIL }}" --password-stdin
-        docker push ronraifer/reporon:${{ env.new_version }}
+        docker run -d -p 8080:8080 ronraifer/reporon:${{ env.new_version }}
         
     - name: Change version on POM
       run: |

@@ -59,10 +59,10 @@ jobs:
 #      env:
 #        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build
+    - name: Build maven
       run: mvn -B package --file ./myapp/pom.xml
 
-    - name: Create Artifact
+    - name: Create artifact
       uses: actions/upload-artifact@v4
       with:
         name: myapp-build-artifact
@@ -76,7 +76,6 @@ jobs:
 
     - name: Build docker
       run: |
-        echo "New version is: ${{ env.new_version }}"
         docker build \
           --build-arg JAR_FILE=downloaded_artifact/*.jar \
           -t ronraifer/reporon:${{ env.new_version }} .

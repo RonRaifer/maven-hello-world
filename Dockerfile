@@ -1,17 +1,18 @@
-# ------------ [STAGE 1] BUILD ------------ #
-FROM eclipse-temurin:17-jdk AS argset
+# Base image
+FROM eclipse-temurin:17-jdk
+
+# Add non-root user as per req: the  Docker image shouldn't run with root
+RUN useradd -m appuser
 
 # Set the build argument for the JAR file
 ARG JAR_FILE=myapp/target/*.jar
 
-# ------------ [STAGE 2] RUN ------------ #
-FROM eclipse-temurin:17-jre
-
-# Copy the application JAR from STAGE 1 into the image
-COPY --from=argset ${JAR_FILE} app.jar
+# Copy the application JAR into the image
+COPY ${JAR_FILE} app.jar
 
 # Set permissions and switch to non-root user
-USER 1000
+RUN chown appuser:appuser app.jar
+USER appuser
 
 # Expose the application port
 EXPOSE 8080

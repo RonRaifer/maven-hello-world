@@ -17,7 +17,7 @@ FROM openjdk:11-jre-slim as deploy
 WORKDIR /app
 RUN useradd -m appuser
 ARG JAR_FILE=myapp/target/*.jar
-COPY ${JAR_FILE} app.jar
+COPY --from=builder ${JAR_FILE} app.jar
 RUN chown appuser:appuser app.jar
 USER appuser
 EXPOSE 8080

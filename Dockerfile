@@ -9,8 +9,8 @@ RUN mvn clean test
 
 FROM eclipse-temurin:17-jdk as builder
 WORKDIR /app
-COPY pom.xml .
-COPY src ./src
+COPY /myapp/pom.xml .
+COPY /myapp/src ./src
 RUN mvn clean package -DskipTests
 
 FROM openjdk:11-jre-slim as deploy
